@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D15 Color Arrangement Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        #testArea, #arrangementArea {
+            display: flex;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            margin: 10px auto;
+        }
+        .colorBox, .emptyBox {
+            width: 50px;
+            height: 50px;
+            margin: 5px;
+            cursor: move;
+            touch-action: none; /* ป้องกันการแทรกแซงเหตุการณ์การสัมผัสในขณะลาก */
+        }
+        .emptyBox {
+            background-color: #f0f0f0;
+            border: 1px dashed #ccc;
+        }
+        .placeholder {
+            background-color: #e0e0e0;
+            border: 2px solid #aaa;
+            cursor: default;
+        }
+        #checkButton {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+        }
+        .highlight {
+            border: 2px solid #4CAF50;
+        }
+        @media (max-width: 600px) {
+            .colorBox, .emptyBox {
+                width: 40px;
+                height: 40px;
+                margin: 3px;
+            }
+            #checkButton {
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">D15 Color Arrangement Test</h1>
+    <div id="testArea"></div>
+    <h2 style="text-align: center;">Arrange the colors here:</h2>
+    <div id="arrangementArea"></div>
+    <button id="checkButton">Check Arrangement</button>
+
+    <script>
+        // สีชุดคำตอบที่ถูกต้องในแถวล่าง
+        const correctColors = [
+            "#3583B4", "#3B84A7", "#39859C", "#3B8690", 
+            "#3F8782", "#588473", "#6C8164", "#837B5D", 
+            "#907660", "#9E6E6F", "#9F6D7C", "#9C6D89", 
+            "#927099", "#8F6FA4", "#8073B2"
+        ];
+
+        // ใช้สีชุดคำตอบเพื่อสุ่มใส่ในแถวบน
+        const colors = [...correctColors];
+
+        const testArea = document.getElementById('testArea');
+        const arrangementArea = document.getElementById('arrangementArea');
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function createColorBoxes() {
+            // สุ่มและสร้างกล่องสีในแถวบน
+            shuffle(colors);
+            colors.forEach((color, index) => {
+                const div = document.createElement('div');
+                div.classList.add('colorBox');
+                div.style.backgroundColor = color;
+                div.setAttribute('draggable', true);
+                div.setAttribute('data-index', index);
+                testArea.appendChild(div);
+            });
+        }
+
+        function createEmptyBoxes() {
+            // เพิ่มกล่องแรกที่มีสี #3781C1 และป้องกันไม่ให้ลากหรือสลับตำแหน่ง
+            const firstDiv = document.createElement('div');
+            firstDiv.classList.add('colorBox');
+            firstDiv.style.backgroundColor = "#3781C1";
+            firstDiv.setAttribute('draggable', false);  // ล็อคไม่ให้ถูกลาก
+            arrangementArea.appendChild(firstDiv);
+
+            // สร้างกล่องว่าง 15 กล่องในแถวล่างที่เหลือ
+            for (let i = 0; i < 15; i++) {
+                const div = document.createElement('div');
+                div.classList.add('emptyBox');
+                div.setAttribute('data-index', i);
+                div.setAttribute('draggable', true);
+                arrangementArea.appendChild(div);
+            }
+        }
+
+        function rgbToHex(rgb) {
+            // แปลงค่า RGB เป็น Hex อย่างถูกต้อง
+            const rgbArr = rgb.match(/\d+/g);
+            const hex = rgbArr.map(num => {
+                const hex = parseInt(num).toString(16);
+                return hex.length === 1 ? "0" + hex : hex;
+            });
+            return "#" + hex.join("");
+        }
+
+        function enableDragAndDrop() {
+            let dragged;
+
+            document.addEventListener("dragstart", function(event) {
+                dragged = event.target;
+                event.target.style.opacity = 0.5;
+            });
+
+            document.addEventListener("dragend", function(event) {
+                event.target.style.opacity = "";
+            });
+
+            document.addEventListener("dragover", function(event) {
+                event.preventDefault();
+                if (event.target.classList.contains('emptyBox') || event.target.classList.contains('colorBox')) {
+                    event.target.classList.add('highlight');
+                }
+            });
+
+            document.addEventListener("dragleave", function(event) {
+                event.target.classList.remove('highlight');
+            });
+
+            document.addEventListener("drop", function(event) {
+                event.preventDefault();
+                const target = event.target;
+
+                if (target.classList.contains('emptyBox')) {
+                    if (dragged.classList.contains('colorBox')) {
+                        target.style.backgroundColor = dragged.style.backgroundColor;
+                        target.classList.add('colorBox');
+                        target.classList.remove('emptyBox');
+                        dragged.classList.add('emptyBox');
+                        dragged.classList.remove('colorBox');
+                        dragged.style.backgroundColor = "#f0f0f0";
+                    }
+                } else if (target.classList.contains('colorBox') && dragged.classList.contains('colorBox')) {
+                    const draggedColor = dragged.style.backgroundColor;
+                    const targetColor = target.style.backgroundColor;
+                    target.style.backgroundColor = draggedColor;
+                    dragged.style.backgroundColor = targetColor;
+                }
+
+                target.classList.remove('highlight');
+            });
+        }
+
+        function checkArrangement() {
+            // ข้ามกล่องแรกในการตรวจสอบการจัดเรียง
+            const boxes = arrangementArea.querySelectorAll('.colorBox:not(:first-child)'); // เริ่มตรวจสอบจากกล่องที่สอง
+            let correct = true;
+            let incorrectPositions = 0;
+
+            // ตรวจสอบว่ามีการจัดเรียงสีครบทุกกล่องหรือไม่
+            if (boxes.length < 15) {
+                alert("กรุณาใส่สีในทุกกล่องก่อนตรวจสอบ!");
+                return;
+            }
+
+            const arrangedColors = Array.from(boxes).map(box => rgbToHex(window.getComputedStyle(box).backgroundColor));
+
+            // ตรวจสอบว่าการจัดเรียงสีตรงกับ correctColors หรือไม่
+            arrangedColors.forEach((color, index) => {
+                if (color.toUpperCase() !== correctColors[index].toUpperCase()) {  // ใช้ toUpperCase เพื่อให้แน่ใจว่าตรวจสอบได้ถูกต้อง
+                    correct = false;
+                    incorrectPositions++;
+                }
+            });
+
+            if (correct) {
+                alert("จัดเรียงถูกต้อง!");
+            } else {
+                alert(`จัดเรียงไม่ถูกต้อง มี ${incorrectPositions} ตำแหน่งที่ผิดพลาด ลองใหม่อีกครั้ง!`);
+            }
+        }
+
+        createColorBoxes();
+        createEmptyBoxes();
+        enableDragAndDrop();
+        document.getElementById('checkButton').addEventListener('click', checkArrangement);
+    </script>
+</body>
+</html>
